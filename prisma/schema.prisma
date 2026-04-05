@@ -1,0 +1,38 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model EtlJob {
+  id              String     @id @default(uuid())
+  name            String
+  status          String
+  recordsProcessed Int       @default(0)
+  durationMs      Int        @default(0)
+  qualityScore    Float      @default(0)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  logs            EtlLog[]
+}
+
+model EtlLog {
+  id              String   @id @default(uuid())
+  jobId           String
+  stage           String
+  level           String
+  message         String
+  createdAt       DateTime @default(now())
+  job             EtlJob   @relation(fields: [jobId], references: [id])
+}
+
+model DataRecord {
+  id          String   @id @default(uuid())
+  source      String
+  data        String
+  isValid     Boolean  @default(true)
+  ingestedAt  DateTime @default(now())
+}
