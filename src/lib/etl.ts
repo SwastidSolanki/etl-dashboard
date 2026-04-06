@@ -25,7 +25,7 @@ export interface ETLMetrics {
   duplicatesRemoved: number;
   qualityScore: number;
   columnsAnalysis: ColumnMetric[];
-  correlations: { x: string, y: string, value: number }[];
+  correlationMatrix?: Record<string, Record<string, number>>;
 }
 
 export function cleanData(rawData: Record<string, unknown>[]): { cleaned: Record<string, unknown>[], metrics: ETLMetrics } {
@@ -39,7 +39,7 @@ export function cleanData(rawData: Record<string, unknown>[]): { cleaned: Record
         duplicatesRemoved: 0,
         qualityScore: 0,
         columnsAnalysis: [],
-        correlations: []
+        correlationMatrix: {}
       }
     };
   }
@@ -120,23 +120,40 @@ export function cleanData(rawData: Record<string, unknown>[]): { cleaned: Record
     return metric;
   });
 
-  // Basic Correlations (Numeric Only)
+  // Physical Pearson Correlation Matrix (Numeric Only)
   const numericCols = columnsAnalysis.filter(c => c.type === "numeric").map(c => c.name);
-  const correlations: ETLMetrics["correlations"] = [];
+  const correlationMatrix: Record<string, Record<string, number>> = {};
 
   if (numericCols.length >= 2) {
-    for (let i = 0; i < Math.min(numericCols.length, 5); i++) {
-      for (let j = i + 1; j < Math.min(numericCols.length, 5); j++) {
-        const colA = numericCols[i];
-        const colB = numericCols[j];
-        // Simplified correlation for demo/logic (actually calculating Pearson would be better)
-        // Here we just use a pseudo-random stable value based on means for UX consistency
-        const valA = columnsAnalysis.find(c => c.name === colA)?.mean || 1;
-        const valB = columnsAnalysis.find(c => c.name === colB)?.mean || 1;
-        const pseudoCorr = Math.round(((valA % 10) / 10) * ((valB % 10) / 10) * 100) / 100;
-        correlations.push({ x: colA, y: colB, value: pseudoCorr });
-      }
-    }
+    numericCols.forEach(colA => {
+      correlationMatrix[colA] = {};
+      numericCols.forEach(colB => {
+        if (colA === colB) {
+          correlationMatrix[colA][colB] = 1;
+        } else {
+          const valuesA = columnData[colA].map(v => Number(v));
+          const valuesB = columnData[colB].map(v => Number(v));
+          
+          const meanA = valuesA.reduce((a, b) => a + b, 0) / valuesA.length;
+          const meanB = valuesB.reduce((a, b) => a + b, 0) / valuesB.length;
+          
+          let num = 0;
+          let denA = 0;
+          let denB = 0;
+          
+          for (let k = 0; k < valuesA.length; k++) {
+            const diffA = valuesA[k] - meanA;
+            const diffB = valuesB[k] - meanB;
+            num += diffA * diffB;
+            denA += diffA * diffA;
+            denB += diffB * diffB;
+          }
+          
+          const r = denA * denB === 0 ? 0 : num / Math.sqrt(denA * denB);
+          correlationMatrix[colA][colB] = Math.round(r * 100) / 100;
+        }
+      });
+    });
   }
 
   const baseScore = validRows.length / rawData.length;
@@ -151,7 +168,7 @@ export function cleanData(rawData: Record<string, unknown>[]): { cleaned: Record
       duplicatesRemoved,
       qualityScore,
       columnsAnalysis,
-      correlations
+      correlationMatrix
     }
   };
 }
