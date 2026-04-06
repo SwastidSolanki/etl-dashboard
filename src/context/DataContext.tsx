@@ -7,8 +7,8 @@ import { cleanData, ETLMetrics, DashboardLog } from "@/lib/etl";
 type ETLStatus = "idle" | "extracting" | "transforming" | "loading" | "success" | "error";
 
 interface DataContextType {
-  rawData: any[];
-  cleanedData: any[];
+  rawData: Record<string, unknown>[];
+  cleanedData: Record<string, unknown>[];
   metrics: ETLMetrics | null;
   logs: DashboardLog[];
   status: ETLStatus;
@@ -20,8 +20,8 @@ interface DataContextType {
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export function DataProvider({ children }: { children: ReactNode }) {
-  const [rawData, setRawData] = useState<any[]>([]);
-  const [cleanedData, setCleanedData] = useState<any[]>([]);
+  const [rawData, setRawData] = useState<Record<string, unknown>[]>([]);
+  const [cleanedData, setCleanedData] = useState<Record<string, unknown>[]>([]);
   const [metrics, setMetrics] = useState<ETLMetrics | null>(null);
   const [logs, setLogs] = useState<DashboardLog[]>([]);
   const [status, setStatus] = useState<ETLStatus>("idle");
@@ -47,37 +47,37 @@ export function DataProvider({ children }: { children: ReactNode }) {
     reset();
     setPendingFile(file);
     setStatus("extracting");
-    setLogs([]); // fresh logs
+    setLogs([]); 
     addLog("INFO", `Starting extraction for ${file.name}...`);
 
-    let extractedData: any[] = [];
+    let extractedData: Record<string, unknown>[] = [];
 
     Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
       dynamicTyping: true,
       chunk: (results) => {
-        extractedData = [...extractedData, ...results.data];
+        extractedData = [...extractedData, ...(results.data as Record<string, unknown>[])];
       },
       complete: () => {
         addLog("SUCCESS", `Extraction complete. Extracted ${extractedData.length} records.`);
         setRawData(extractedData);
         
-        // Move to transform phase
         setStatus("transforming");
         addLog("INFO", "Starting transformation phase...");
         
-        setTimeout(() => { // Simulate processing time for UX
+        setTimeout(() => { 
           try {
             const { cleaned, metrics: newMetrics } = cleanData(extractedData);
             setCleanedData(cleaned);
             setMetrics(newMetrics);
             addLog("INFO", `Transformation applied. Found ${newMetrics.missingValuesRemoved} missing values and ${newMetrics.duplicatesRemoved} duplicates.`);
+            addLog("INFO", `Detected ${newMetrics.columnsAnalysis.filter(c => c.type === 'numeric').length} numeric columns.`);
             
             setStatus("loading");
             addLog("INFO", "Preparing data for loading phase...");
             
-            setTimeout(() => { // Simulate load time
+            setTimeout(() => {
               addLog("SUCCESS", "Pipeline completed successfully.");
               setStatus("success");
             }, 1000);
