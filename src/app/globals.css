@@ -1,32 +1,75 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
   --color-background: #020617;
   --color-foreground: #f8fafc;
-  --color-glass-bg: rgba(15, 23, 42, 0.6);
-  --color-glass-border: rgba(255, 255, 255, 0.05);
-  --color-primary: #3b82f6;
-  --color-primary-foreground: #ffffff;
-  --color-card: rgba(30, 41, 59, 0.7);
-  --color-card-foreground: #f8fafc;
-  --color-border: rgba(255, 255, 255, 0.1);
-  --color-sidebar: #1e293b;
   
-  --radius-lg: 1rem;
-  --radius-md: 0.75rem;
-  --radius-sm: 0.5rem;
+  --color-slate-950: #020617;
+  --color-blue-500: #3b82f6;
+  --color-emerald-500: #10b981;
+  --color-rose-500: #f43f5e;
+  --color-amber-500: #f59e0b;
+  --color-indigo-500: #6366f1;
+
+  --animate-spin-slow: spin 8s linear infinite;
+  --animate-pulse-slow: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-glow: glow 2s ease-in-out infinite alternate;
+
+  @keyframes glow {
+    from { box-shadow: 0 0 20px -5px rgba(59, 130, 246, 0.2); }
+    to { box-shadow: 0 0 40px 5px rgba(59, 130, 246, 0.4); }
+  }
 }
 
 @layer base {
   body {
-    background-color: var(--color-background);
-    color: var(--color-foreground);
-    @apply antialiased min-h-screen bg-slate-950 text-slate-50 selection:bg-blue-500/30;
+    background-color: #020617;
+    color: #f8fafc;
+    @apply antialiased min-h-screen selection:bg-blue-500/30 overflow-x-hidden;
+    background-image: 
+      radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.05) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, rgba(16, 185, 129, 0.05) 0px, transparent 50%),
+      radial-gradient(at 50% 100%, rgba(99, 102, 241, 0.05) 0px, transparent 50%);
+  }
+
+  /* Custom Scrollbar */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-slate-800 rounded-full hover:bg-slate-700 transition-colors;
   }
 }
 
-.glass-panel {
-  @apply bg-slate-900/50 backdrop-blur-xl border border-white/10 shadow-xl;
+@layer components {
+  .glass-panel {
+    @apply bg-slate-900/40 backdrop-blur-3xl border border-white/5 shadow-2xl transition-all duration-500;
+  }
+
+  .glass-card {
+    @apply bg-slate-950/50 backdrop-blur-2xl border border-white/5 rounded-[2rem] p-8 hover:bg-slate-900/60 transition-all duration-500 hover:border-white/10 shadow-3xl;
+  }
+
+  .glass-input {
+    @apply bg-slate-950/80 border border-white/5 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-blue-500/40 focus:ring-4 focus:ring-blue-500/5 transition-all duration-300 placeholder:text-slate-600 font-bold;
+  }
+
+  .glass-button-primary {
+    @apply bg-blue-600 hover:bg-blue-500 text-white font-black rounded-2xl px-8 py-4 transition-all shadow-xl shadow-blue-600/20 active:scale-95 uppercase text-xs tracking-widest disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .glass-button-secondary {
+    @apply bg-slate-900 border border-white/5 hover:border-white/10 text-white font-bold rounded-2xl px-8 py-4 transition-all active:scale-95 text-sm;
+  }
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
