@@ -97,15 +97,23 @@ export function cleanData(rawData: Record<string, unknown>[]): { cleaned: Record
     const metric: ColumnMetric = { name: col, type, completeness, uniqueValues };
 
     if (type === "numeric") {
-      const nums = values.map(v => Number(v)).filter(v => !isNaN(v));
+      const nums = values.map(v => Number(v)).filter(v => !isNaN(v)).sort((a, b) => a - b);
       if (nums.length > 0) {
-        metric.min = Math.min(...nums);
-        metric.max = Math.max(...nums);
+        metric.min = nums[0];
+        metric.max = nums[nums.length - 1];
         metric.mean = Math.round((nums.reduce((a, b) => a + b, 0) / nums.length) * 100) / 100;
         
-        // Simple Z-score outlier detection (Threshold = 3)
+        // Z-score Outliers
         const stdDev = Math.sqrt(nums.map(x => Math.pow(x - (metric.mean || 0), 2)).reduce((a, b) => a + b, 0) / nums.length);
-        metric.outliers = nums.filter(x => Math.abs(x - (metric.mean || 0)) > 3 * stdDev).length;
+        const zOutliers = nums.filter(x => Math.abs(x - (metric.mean || 0)) > 3 * stdDev).length;
+
+        // IQR Outliers
+        const q1 = nums[Math.floor(nums.length / 4)];
+        const q3 = nums[Math.floor(nums.length * 0.75)];
+        const iqr = q3 - q1;
+        const iqrOutliers = nums.filter(x => x < q1 - 1.5 * iqr || x > q3 + 1.5 * iqr).length;
+
+        metric.outliers = Math.max(zOutliers, iqrOutliers);
       }
     }
 
