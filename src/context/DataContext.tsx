@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import Papa from "papaparse";
 import { cleanData, ETLMetrics, DashboardLog } from "@/lib/etl";
 
@@ -16,6 +16,9 @@ interface DataContextType {
   reset: () => void;
   runPipeline: () => void;
   exportData: () => void;
+  saveSnapshot: () => void;
+  loadSnapshot: () => boolean;
+  hasSnapshot: boolean;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -27,12 +30,57 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [logs, setLogs] = useState<DashboardLog[]>([]);
   const [status, setStatus] = useState<ETLStatus>("idle");
   const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [hasSnapshot, setHasSnapshot] = useState(false);
+
+  // Initial check for snapshot
+  useEffect(() => {
+    const saved = localStorage.getItem("etl_flow_snapshot");
+    if (saved) setHasSnapshot(true);
+  }, []);
 
   const addLog = (level: DashboardLog["level"], message: string) => {
     setLogs((prev) => [
       ...prev,
       { id: Math.random().toString(36).substr(2, 9), time: new Date().toLocaleTimeString(), level, message }
     ]);
+  };
+
+  const saveSnapshot = () => {
+    if (cleanedData.length === 0 || !metrics) {
+      addLog("WARN", "Persistence aborted: No active kernel data clusters to buffer.");
+      return;
+    }
+    const snapshot = {
+      rawData,
+      cleanedData,
+      metrics,
+      timestamp: new Date().toISOString()
+    };
+    localStorage.setItem("etl_flow_snapshot", JSON.stringify(snapshot));
+    setHasSnapshot(true);
+    addLog("SUCCESS", "Kernel snapshot successfully persisted to local buffer.");
+  };
+
+  const loadSnapshot = (): boolean => {
+    const saved = localStorage.getItem("etl_flow_snapshot");
+    if (!saved) {
+      addLog("ERROR", "Uplink failed: No snapshot clusters detected in local storage.");
+      return false;
+    }
+    try {
+      const { rawData: sRaw, cleanedData: sCleaned, metrics: sMetrics } = JSON.parse(saved);
+      setRawData(sRaw);
+      setCleanedData(sCleaned);
+      setMetrics(sMetrics);
+      setStatus("success");
+      addLog("SUCCESS", "Relational data restored from local buffer. Trust Score verified.");
+      return true;
+    } catch (e) {
+      addLog("ERROR", "Snapshot corruption detected. Purging local buffer.");
+      localStorage.removeItem("etl_flow_snapshot");
+      setHasSnapshot(false);
+      return false;
+    }
   };
 
   const reset = () => {
@@ -117,7 +165,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <DataContext.Provider value={{ rawData, cleanedData, metrics, logs, status, uploadFile, reset, runPipeline, exportData }}>
+    <DataContext.Provider value={{ 
+      rawData, 
+      cleanedData, 
+      metrics, 
+      logs, 
+      status, 
+      uploadFile, 
+      reset, 
+      runPipeline, 
+      exportData,
+      saveSnapshot,
+      loadSnapshot,
+      hasSnapshot
+    }}>
       {children}
     </DataContext.Provider>
   );

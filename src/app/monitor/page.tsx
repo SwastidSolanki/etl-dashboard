@@ -1,12 +1,12 @@
 "use client";
 import React, { useRef, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Database, Server, Box, CheckCircle2, RefreshCw, Activity, Terminal, Shield, Play, Pause, XCircle } from "lucide-react";
+import { Database, Server, Box, CheckCircle2, RefreshCw, Activity, Terminal, Shield, Play, Pause, XCircle, Save, RotateCcw } from "lucide-react";
 import { clsx } from "clsx";
 import { useDataContext } from "@/context/DataContext";
 
 export default function PipelineMonitor() {
-  const { status, logs, rawData, cleanedData, metrics, reset } = useDataContext();
+  const { status, logs, rawData, cleanedData, metrics, reset, saveSnapshot, loadSnapshot, hasSnapshot } = useDataContext();
   const logEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -240,9 +240,55 @@ export default function PipelineMonitor() {
 
         {/* Sidebar Status */}
         <div className="lg:col-span-12 xl:col-span-3 space-y-10">
+           {/* Snapshot Control */}
            <motion.div 
              initial={{ opacity: 0, x: 30 }}
              animate={{ opacity: 1, x: 0 }}
+             className="glass-panel rounded-[2.5rem] p-10 border border-blue-500/20 bg-blue-500/5 shadow-2xl"
+           >
+              <div className="flex items-center gap-4 mb-8">
+                 <div className="p-3 bg-blue-500/10 rounded-2xl border border-blue-500/20">
+                    <Database className="w-6 h-6 text-blue-500" />
+                 </div>
+                 <div>
+                    <h3 className="text-lg font-black text-white tracking-tight">Kernel Snapshot</h3>
+                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none mt-1">Local Buffer Management</p>
+                 </div>
+              </div>
+              
+              <div className="space-y-4">
+                 <button 
+                   onClick={saveSnapshot}
+                   disabled={status !== "success"}
+                   className="w-full flex items-center justify-center gap-2.5 px-6 py-4 bg-slate-900 hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed text-white text-[10px] font-black rounded-2xl transition-all border border-white/5 shadow-xl uppercase tracking-widest"
+                 >
+                   <Save className="w-4 h-4 text-blue-500" />
+                   Buffer Current State
+                 </button>
+                 
+                 {hasSnapshot && (
+                    <button 
+                      onClick={loadSnapshot}
+                      className="w-full flex items-center justify-center gap-2.5 px-6 py-4 bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-black rounded-2xl transition-all shadow-xl shadow-blue-500/20 uppercase tracking-widest"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                      Restore From Buffer
+                    </button>
+                 )}
+              </div>
+
+              {hasSnapshot && (
+                 <div className="mt-8 flex items-center gap-3 px-4 py-3 bg-slate-950 border border-white/5 rounded-2xl">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Snapshot Cluster Detected</span>
+                 </div>
+              )}
+           </motion.div>
+
+           <motion.div 
+             initial={{ opacity: 0, x: 30 }}
+             animate={{ opacity: 1, x: 0 }}
+             transition={{ delay: 0.1 }}
              className="glass-panel rounded-[2.5rem] p-10 border border-white/5 shadow-2xl"
            >
               <h3 className="text-xs font-black uppercase text-slate-500 tracking-[0.3em] mb-12 border-l-4 border-blue-500 pl-4">Engine Telemetry</h3>
@@ -272,6 +318,7 @@ export default function PipelineMonitor() {
            <motion.div 
              initial={{ opacity: 0, y: 30 }}
              animate={{ opacity: 1, y: 0 }}
+             transition={{ delay: 0.2 }}
              className="glass-panel rounded-[2.5rem] p-10 border border-emerald-500/20 bg-emerald-500/5 shadow-2xl"
            >
               <div className="flex flex-col items-center text-center gap-6">
