@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://etl-flow.vercel.app/sitemap.xml
