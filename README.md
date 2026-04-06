@@ -1,36 +1,100 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🌀 ETL FLOW | Automated Data Engineering Telemetry
 
-## Getting Started
+[![Next.js](https://img.shields.io/badge/Next.js-15-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-blue?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
+[![Framer Motion](https://img.shields.io/badge/Framer_Motion-11-purple?style=for-the-badge&logo=framer)](https://www.framer.com/motion/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-emerald?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
-First, run the development server:
+**ETL FLOW** is a high-performance, production-grade SaaS dashboard designed for real-time ETL pipeline monitoring, automated data sanitization, and deep relational analytics. Built with a focus on **Glassmorphism aesthetics** and **client-side security**, it enables data engineers to process massive CSV datasets with zero data exfiltration.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+---
+
+## 🚀 Key Features
+
+- **⚡ Vectorized ETL Engine**: High-speed, browser-native data extraction and transformation using Papaparse and custom heuristics.
+- **📊 Relational Intelligence**: Automated Pearson correlation matrices and statistical profiling (Mean, Median, Min, Max).
+- **🛡️ Kernel Guard**: Integrated integrity testing suite to verify cleaning logic against synthetic edge cases.
+- **🕒 Automation Scheduler**: Persistent job management system with real-time execution countdowns and telemetry.
+- **💎 Premium Glassmorphism UI**: A state-of-the-art interface featuring dynamic background gradients, motion-aware navigation, and responsive layouts.
+- **🕵️ Data Quality Pulse**: Real-time completeness heatmaps and anomaly detection logs.
+
+---
+
+## 🛠️ Technology Stack
+
+- **Frontend**: Next.js 15 (App Router), React 19
+- **Styling**: Tailwind CSS with custom Glassmorphism tokens
+- **Animations**: Framer Motion
+- **Charts**: Recharts (High-fidelity telemetry)
+- **Data Parsing**: Papaparse (Worker-threaded)
+- **Icons**: Lucide React
+
+---
+
+## 📐 System Architecture
+
+```mermaid
+graph TD
+    A[User Uploads CSV] --> B[Papaparse Extraction]
+    B --> C{ETL Kernel}
+    C -->|Sanitize| D[Deduplication & Null Purge]
+    C -->|Analyze| E[Statistical Profiling]
+    C -->|Relate| F[Pearson Correlation]
+    D --> G[DataContext State]
+    E --> G
+    F --> G
+    G --> H[Telemetry Dashboard]
+    G --> I[Quality Guard Verification]
+    H --> J[Mission Control UI]
+    I --> J
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📦 Getting Started
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Prerequisites
+- Node.js 18.x or higher
+- npm / yarn / pnpm
 
-## Learn More
+### Installation
 
-To learn more about Next.js, take a look at the following resources:
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/innki/etl-dashboard.git
+   cd etl-dashboard
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+3. **Initialize the development server**
+   ```bash
+   npm run dev
+   ```
 
-## Deploy on Vercel
+4. **Launch the application**
+   Open [http://localhost:3000](http://localhost:3000) to access the Mission Control.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 🤝 Contribution Strategy
+
+This project follows an atomic contribution model. Recent milestones:
+- **v2.4.0**: Implementation of Pearson Relational Affinity
+- **v2.3.0**: 'Kernel Guard' Integrity Test Suite integration
+- **v2.2.0**: High-fidelity Mobile Navigation overhaul
+
+---
+
+## 📄 License
+
+Distributed under the MIT License. See `LICENSE` for more information.
+
+---
+
+<p align="center">
+  Built with ❤️ for the Data Engineering Community.
+</p>
