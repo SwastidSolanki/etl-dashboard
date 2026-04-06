@@ -15,6 +15,7 @@ interface DataContextType {
   uploadFile: (file: File) => void;
   reset: () => void;
   runPipeline: () => void;
+  exportData: () => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -41,6 +42,22 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setLogs([]);
     setStatus("idle");
     setPendingFile(null);
+  };
+
+  const exportData = () => {
+    if (cleanedData.length === 0) return;
+    addLog("INFO", "Generating CSV report...");
+    const csv = Papa.unparse(cleanedData);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `etl_cleaned_report_${new Date().getTime()}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    addLog("SUCCESS", "Report downloaded successfully.");
   };
 
   const uploadFile = (file: File) => {
@@ -100,7 +117,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <DataContext.Provider value={{ rawData, cleanedData, metrics, logs, status, uploadFile, reset, runPipeline }}>
+    <DataContext.Provider value={{ rawData, cleanedData, metrics, logs, status, uploadFile, reset, runPipeline, exportData }}>
       {children}
     </DataContext.Provider>
   );
