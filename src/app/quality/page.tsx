@@ -2,26 +2,37 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { AlertTriangle, CheckCircle, FileWarning, BarChart as BarChartIcon, Target, Search } from "lucide-react";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, BarChart as RechartsBar, Bar, XAxis, YAxis, CartesianGrid, Legend } from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, BarChart as RechartsBar, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { useDataContext } from "@/context/DataContext";
 import { clsx } from "clsx";
+import QualityGuard from "@/components/QualityGuard";
 
 export default function QualityDashboard() {
   const { metrics, rawData } = useDataContext();
 
   if (!metrics || rawData.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-[60vh] text-slate-500 space-y-6">
-        <div className="p-6 bg-slate-900/50 rounded-full border border-slate-800">
-           <Search className="w-12 h-12 opacity-20" />
+      <div className="flex flex-col items-center justify-center min-h-[70vh] space-y-8 max-w-2xl mx-auto px-6 text-center">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="p-10 bg-slate-900/40 rounded-[3rem] border border-white/5 relative overflow-hidden"
+        >
+           <div className="absolute -top-12 -right-12 w-32 h-32 bg-blue-500/10 blur-3xl rounded-full"></div>
+           <Search className="w-16 h-16 text-blue-500/30 mx-auto mb-6" />
+           <h2 className="text-2xl font-black text-white tracking-tight">Quality Intel Awaiting Data</h2>
+           <p className="text-slate-500 font-medium mt-3 leading-relaxed">Initialize a pipeline from the mission control panel to enable real-time integrity telemetry.</p>
+        </motion.div>
+        
+        <div className="w-full">
+           <QualityGuard />
         </div>
-        <p className="font-medium tracking-wide">Awaiting dataset upload for quality analysis...</p>
       </div>
     );
   }
 
   const qualityDistribution = [
-    { name: "Valid Records", value: metrics.totalCleanedRows, color: "#10b981" },
+    { name: "Valid Records", value: metrics.cleanedCount, color: "#10b981" },
     { name: "Missing Values", value: metrics.missingValuesRemoved, color: "#f59e0b" },
     { name: "Duplicates", value: metrics.duplicatesRemoved, color: "#6366f1" },
   ].filter(item => item.value > 0);
@@ -33,121 +44,159 @@ export default function QualityDashboard() {
     missing: 100 - col.completeness
   })).sort((a, b) => a.completeness - b.completeness);
 
-  // Data for Anomaly Detection
-  const anomalyData = metrics.columnsAnalysis
-    .filter(col => col.outliers !== undefined && col.outliers > 0)
-    .map(col => ({
-      name: col.name,
-      outliers: col.outliers
-    }))
-    .sort((a, b) => (b.outliers || 0) - (a.outliers || 0));
-
   return (
-    <div className="space-y-10 max-w-7xl mx-auto pb-20">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <div className="space-y-12 max-w-[1600px] mx-auto pb-32">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
         <div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">Quality Intelligence</h1>
-          <p className="text-slate-400 mt-2 font-medium">Deep analysis of record integrity and statistical anomalies.</p>
+           <div className="flex items-center gap-3 mb-4">
+              <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
+              <span className="text-[10px] font-black uppercase text-slate-500 tracking-[0.3em]">Telemetry Active</span>
+           </div>
+           <h1 className="text-4xl font-black text-white tracking-tighter">Quality Intelligence</h1>
+           <p className="text-slate-400 mt-2 font-medium max-w-xl">Deep relational analysis of record integrity, schema consistency, and statistical drift.</p>
         </div>
-        <div className="px-6 py-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl">
-           <div className="flex items-center gap-3">
-              <Target className="w-5 h-5 text-emerald-500" />
-              <span className="text-sm font-black text-emerald-400 uppercase tracking-widest">Trust Score: {metrics.qualityScore}%</span>
+        <div className="px-8 py-4 bg-emerald-600/10 border border-emerald-500/30 rounded-[2rem] shadow-2xl backdrop-blur-3xl group hover:border-emerald-500 transition-all">
+           <div className="flex items-center gap-5">
+              <div className="p-3 bg-emerald-500/10 rounded-2xl border border-emerald-500/20">
+                 <Target className="w-6 h-6 text-emerald-500" />
+              </div>
+              <div>
+                 <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest leading-none mb-1.5">Kernel Trust Score</p>
+                 <span className="text-2xl font-black text-white tracking-tighter">{metrics.qualityScore}%</span>
+              </div>
            </div>
         </div>
       </div>
 
       {/* Top Metrics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
         <QualityCard 
           icon={CheckCircle} 
-          label="Operational Health" 
+          label="Consolidated Score" 
           value={`${metrics.qualityScore}%`} 
-          subValue="Consolidated Score"
+          subValue="Kernel Integrity"
           color="emerald"
           delay={0.1}
         />
         <QualityCard 
           icon={AlertTriangle} 
-          label="Null Value Impact" 
+          label="Null Purge Impact" 
           value={metrics.missingValuesRemoved.toLocaleString()} 
-          subValue={`${((metrics.missingValuesRemoved / metrics.totalOriginalRows) * 100).toFixed(1)}% of dataset`}
+          subValue={`${((metrics.missingValuesRemoved / metrics.originalCount) * 100).toFixed(1)}% of set`}
           color="amber"
           delay={0.2}
         />
         <QualityCard 
           icon={FileWarning} 
-          label="Redundancy Load" 
+          label="Redundancy Purged" 
           value={metrics.duplicatesRemoved.toLocaleString()} 
-          subValue={`${((metrics.duplicatesRemoved / metrics.totalOriginalRows) * 100).toFixed(1)}% deduplicated`}
+          subValue={`${((metrics.duplicatesRemoved / metrics.originalCount) * 100).toFixed(1)}% deduplicated`}
           color="indigo"
           delay={0.3}
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+         <div className="lg:col-span-8">
+            <QualityGuard />
+         </div>
+         <div className="lg:col-span-4 h-full">
+            <motion.div 
+               initial={{ opacity: 0, x: 30 }}
+               animate={{ opacity: 1, x: 0 }}
+               className="glass-panel p-10 rounded-[3rem] border border-white/5 h-full relative overflow-hidden"
+            >
+               <div className="absolute -bottom-12 -right-12 w-32 h-32 bg-indigo-500/10 blur-3xl opacity-30"></div>
+               <h2 className="text-xl font-black text-white mb-10 border-l-4 border-indigo-500 pl-4 uppercase tracking-widest">Quality Mix</h2>
+               <div className="h-[400px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                     <Pie
+                        data={qualityDistribution}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={90}
+                        outerRadius={130}
+                        paddingAngle={10}
+                        dataKey="value"
+                        stroke="none"
+                     >
+                        {qualityDistribution.map((entry, index) => (
+                           <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                     </Pie>
+                     <RechartsTooltip 
+                        contentStyle={{ backgroundColor: '#020617', borderColor: '#1e293b', borderRadius: '1.5rem', color: '#f8fafc', fontWeight: 'bold' }} 
+                     />
+                  </PieChart>
+                  </ResponsiveContainer>
+               </div>
+               <div className="space-y-4 mt-6">
+                  {qualityDistribution.map((item) => (
+                     <div key={item.name} className="flex items-center justify-between p-4 bg-slate-950/50 border border-white/5 rounded-2xl group transition-all hover:bg-slate-900/50">
+                        <div className="flex items-center gap-3">
+                           <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }}></div>
+                           <span className="text-xs font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-100 transition-colors">{item.name}</span>
+                        </div>
+                        <span className="text-sm font-black text-white">{item.value.toLocaleString()}</span>
+                     </div>
+                  ))}
+               </div>
+            </motion.div>
+         </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
         {/* Column Completeness */}
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="glass-panel p-8 rounded-[2.5rem] border border-white/5"
+          className="glass-panel p-10 rounded-[3rem] border border-white/5"
         >
-          <div className="flex items-center justify-between mb-8">
-             <h2 className="text-xl font-bold text-white">Completeness Heatmap</h2>
-             <div className="p-2 bg-slate-800 rounded-lg">
-                <BarChartIcon className="w-5 h-5 text-slate-400" />
+          <div className="flex items-center justify-between mb-10">
+             <h2 className="text-2xl font-black text-white tracking-tight uppercase tracking-widest">Completeness Scatter</h2>
+             <div className="p-3 bg-slate-900 rounded-2xl border border-white/5">
+                <BarChartIcon className="w-6 h-6 text-slate-400" />
              </div>
           </div>
-          <div className="h-[400px]">
+          <div className="h-[450px]">
             <ResponsiveContainer width="100%" height="100%">
-              <RechartsBar data={completenessData} layout="vertical" margin={{ left: 40, right: 30 }}>
+              <RechartsBar data={completenessData} layout="vertical" margin={{ left: 40, right: 30, bottom: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#1e293b" />
                 <XAxis type="number" hide />
-                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 600 }} width={100} />
+                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 800 }} width={110} />
                 <RechartsTooltip 
-                  cursor={{ fill: 'rgba(255,255,255,0.03)' }}
-                  contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '1rem', color: '#f8fafc' }}
+                  cursor={{ fill: 'rgba(255,255,255,0.02)' }}
+                  contentStyle={{ backgroundColor: '#020617', borderColor: '#1e293b', borderRadius: '1.5rem', padding: '1.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,1)' }}
                 />
-                <Bar dataKey="completeness" stackId="a" fill="#3b82f6" radius={[0, 0, 0, 0]} barSize={20} name="Valid %" />
-                <Bar dataKey="missing" stackId="a" fill="#1e293b" radius={[0, 4, 4, 0]} name="Missing %" />
+                <Bar dataKey="completeness" stackId="a" fill="#3b82f6" radius={[0, 0, 0, 0]} barSize={22} name="Operational %" />
+                <Bar dataKey="missing" stackId="a" fill="#1e293b" radius={[0, 8, 8, 0]} name="Incomplete %" />
               </RechartsBar>
             </ResponsiveContainer>
           </div>
         </motion.div>
 
-        {/* Anomaly Distribution */}
+        {/* Statistical Deviations */}
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.2 }}
-          className="glass-panel p-8 rounded-[2.5rem] border border-white/5"
+          className="glass-panel p-10 rounded-[3rem] border border-white/5 bg-rose-500/[0.02]"
         >
-          <div className="flex items-center justify-between mb-8">
-             <h2 className="text-xl font-bold text-white">Anomaly Distribution</h2>
-             <div className="p-2 bg-rose-500/10 rounded-lg">
-                <AlertTriangle className="w-5 h-5 text-rose-500" />
+          <div className="flex items-center justify-between mb-10">
+             <h2 className="text-2xl font-black text-white tracking-tight uppercase tracking-widest">Schema Drift</h2>
+             <div className="p-3 bg-rose-500/10 rounded-2xl border border-rose-500/20">
+                <AlertTriangle className="w-6 h-6 text-rose-500" />
              </div>
           </div>
-          <div className="h-[400px]">
-            {anomalyData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <RechartsBar data={anomalyData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                  <CartesianGrid stroke="#1e293b" strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="name" stroke="#64748b" tick={{ fill: '#94a3b8', fontSize: 12 }} tickLine={false} axisLine={false} />
-                  <YAxis stroke="#64748b" tick={{ fill: '#94a3b8', fontSize: 12 }} tickLine={false} axisLine={false} />
-                  <RechartsTooltip 
-                    cursor={{ fill: 'rgba(255,255,255,0.03)' }}
-                    contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '1rem' }}
-                  />
-                  <Bar dataKey="outliers" fill="#f43f5e" radius={[6, 6, 0, 0]} barSize={40} />
-                </RechartsBar>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-full flex flex-col items-center justify-center text-slate-500 space-y-4">
-                 <CheckCircle className="w-12 h-12 text-emerald-500/20" />
-                 <p className="text-xs font-black uppercase tracking-widest text-slate-600">No outliers detected in numeric fields</p>
-              </div>
-            )}
+          <div className="h-[450px] flex flex-col items-center justify-center text-slate-500 space-y-6">
+             <div className="w-24 h-24 rounded-full border-4 border-slate-900 border-t-emerald-500 animate-[spin_3s_linear_infinite] flex items-center justify-center">
+                <CheckCircle className="w-10 h-10 text-emerald-500" />
+             </div>
+             <div className="text-center">
+                <p className="text-lg font-black text-white">NOMINAL STABILITY</p>
+                <p className="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em] mt-1">Zero critical drifts detected in the current kernel</p>
+             </div>
           </div>
         </motion.div>
       </div>
@@ -167,19 +216,19 @@ function QualityCard({ icon: Icon, label, value, subValue, color, delay }: any) 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay }}
-      className="glass-panel p-8 rounded-[2rem] border border-white/5 relative overflow-hidden group"
+      className="glass-panel p-10 rounded-[2.5rem] border border-white/5 relative overflow-hidden group shadow-3xl"
     >
-      <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-      <div className="flex items-center gap-4 mb-6">
-        <div className={clsx("p-3 rounded-2xl border", colorMap[color as keyof typeof colorMap])}>
-          <Icon className="w-6 h-6" />
+      <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+      <div className="flex items-center gap-6 mb-10">
+        <div className={clsx("p-4 rounded-2xl border", colorMap[color as keyof typeof colorMap])}>
+          <Icon className="w-7 h-7" />
         </div>
-        <div>
-           <p className="text-xs font-black uppercase text-slate-500 tracking-widest">{label}</p>
-           <p className="text-slate-400 text-[10px] font-bold mt-0.5">{subValue}</p>
+        <div className="flex-1 min-w-0">
+           <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest leading-none mb-2">{label}</p>
+           <p className="text-slate-400 text-[10px] font-bold truncate">{subValue}</p>
         </div>
       </div>
-      <p className="text-4xl font-black text-white tracking-tighter">{value}</p>
+      <p className="text-5xl font-black text-white tracking-tighter leading-none">{value}</p>
     </motion.div>
   );
 }
