@@ -7,168 +7,150 @@ export interface DashboardLog {
   message: string;
 }
 
-export interface ColumnMetric {
+export interface ColumnAnalysis {
   name: string;
-  type: "numeric" | "string" | "date" | "boolean";
+  type: "numeric" | "categorical" | "date" | "boolean";
   completeness: number; // percentage
   uniqueValues: number;
-  outliers?: number;
-  min?: number;
-  max?: number;
-  mean?: number;
+  profiling?: {
+    min: number;
+    max: number;
+    mean: number;
+    median: number;
+  };
 }
 
 export interface ETLMetrics {
-  totalOriginalRows: number;
-  totalCleanedRows: number;
-  missingValuesRemoved: number;
+  originalCount: number;
+  cleanedCount: number;
   duplicatesRemoved: number;
-  qualityScore: number;
-  columnsAnalysis: ColumnMetric[];
-  correlationMatrix?: Record<string, Record<string, number>>;
+  missingValuesRemoved: number;
+  columnsAnalysis: ColumnAnalysis[];
+  qualityScore: number; // 0-100
+  correlationMatrix: Record<string, Record<string, number>>;
 }
 
-export function cleanData(rawData: Record<string, unknown>[]): { cleaned: Record<string, unknown>[], metrics: ETLMetrics } {
-  if (!rawData || rawData.length === 0) {
+export function cleanData(data: Record<string, unknown>[]): { cleaned: Record<string, unknown>[], metrics: ETLMetrics } {
+  const originalCount = data.length;
+  if (originalCount === 0) {
     return {
       cleaned: [],
       metrics: {
-        totalOriginalRows: 0,
-        totalCleanedRows: 0,
-        missingValuesRemoved: 0,
+        originalCount: 0,
+        cleanedCount: 0,
         duplicatesRemoved: 0,
-        qualityScore: 0,
+        missingValuesRemoved: 0,
         columnsAnalysis: [],
-        correlationMatrix: {}
-      }
+        qualityScore: 100,
+        correlationMatrix: {},
+      },
     };
   }
 
-  const columns = Object.keys(rawData[0]);
-  const columnData: Record<string, any[]> = {};
-  columns.forEach(col => columnData[col] = []);
+  // 1. Remove Exact Duplicates
+  const seen = new Set();
+  const uniqueData = data.filter((row) => {
+    const s = JSON.stringify(row);
+    if (seen.has(s)) return false;
+    seen.add(s);
+    return true;
+  });
+  const duplicatesRemoved = originalCount - uniqueData.length;
 
-  let missingValuesRemoved = 0;
-  const validRows: Record<string, unknown>[] = [];
-  const stringifiedRows = new Set<string>();
-  let duplicatesRemoved = 0;
+  // 2. Remove Rows with > 50% Missing Values
+  const keys = Object.keys(data[0]);
+  const cleaned = uniqueData.filter((row) => {
+    const missingCount = keys.filter((k) => row[k] === null || row[k] === undefined || row[k] === "").length;
+    return missingCount / keys.length < 0.5;
+  });
+  const missingValuesRemoved = uniqueData.length - cleaned.length;
 
-  for (const row of rawData) {
-    let isRowValid = true;
-    for (const col of columns) {
-      const val = row[col];
-      if (val === null || val === undefined || String(val).trim() === '') {
-        isRowValid = false;
-        break;
-      }
-    }
-
-    if (!isRowValid) {
-      missingValuesRemoved++;
-      continue;
-    }
-
-    const stringified = JSON.stringify(row);
-    if (stringifiedRows.has(stringified)) {
-      duplicatesRemoved++;
-    } else {
-      stringifiedRows.add(stringified);
-      validRows.push(row);
-      // Collect data for analysis
-      columns.forEach(col => columnData[col].push(row[col]));
-    }
-  }
-
-  // Advanced Analysis
-  const columnsAnalysis: ColumnMetric[] = columns.map(col => {
-    const values = columnData[col];
-    const total = rawData.length;
-    const completeness = Math.round((values.length / total) * 100);
+  // 3. Column Analysis & Profiling
+  const columnsAnalysis: ColumnAnalysis[] = keys.map((key) => {
+    const values = cleaned.map((r) => r[key]);
+    const nonMissing = values.filter((v) => v !== null && v !== undefined && v !== "");
+    const unique = new Set(nonMissing);
     
-    // Detect Type
-    const sample = values[0];
-    let type: ColumnMetric["type"] = "string";
-    if (typeof sample === "number") type = "numeric";
-    else if (typeof sample === "boolean") type = "boolean";
-    else if (!isNaN(Date.parse(String(sample)))) type = "date";
+    // Simple type inference
+    let type: ColumnAnalysis["type"] = "categorical";
+    const sample = nonMissing.slice(0, 10);
+    const isNum = sample.length > 0 && sample.every((v) => typeof v === "number");
+    const isBool = sample.length > 0 && sample.every((v) => typeof v === "boolean");
+    const isDate = sample.length > 0 && sample.every((v) => !isNaN(Date.parse(String(v))));
 
-    const uniqueValues = new Set(values).size;
+    if (isNum) type = "numeric";
+    else if (isDate) type = "date";
+    else if (isBool) type = "boolean";
 
-    const metric: ColumnMetric = { name: col, type, completeness, uniqueValues };
-
-    if (type === "numeric") {
-      const nums = values.map(v => Number(v)).filter(v => !isNaN(v)).sort((a, b) => a - b);
-      if (nums.length > 0) {
-        metric.min = nums[0];
-        metric.max = nums[nums.length - 1];
-        metric.mean = Math.round((nums.reduce((a, b) => a + b, 0) / nums.length) * 100) / 100;
-        
-        // Z-score Outliers
-        const stdDev = Math.sqrt(nums.map(x => Math.pow(x - (metric.mean || 0), 2)).reduce((a, b) => a + b, 0) / nums.length);
-        const zOutliers = nums.filter(x => Math.abs(x - (metric.mean || 0)) > 3 * stdDev).length;
-
-        // IQR Outliers
-        const q1 = nums[Math.floor(nums.length / 4)];
-        const q3 = nums[Math.floor(nums.length * 0.75)];
-        const iqr = q3 - q1;
-        const iqrOutliers = nums.filter(x => x < q1 - 1.5 * iqr || x > q3 + 1.5 * iqr).length;
-
-        metric.outliers = Math.max(zOutliers, iqrOutliers);
-      }
+    let profiling;
+    if (type === "numeric" && nonMissing.length > 0) {
+      const numValues = nonMissing.map(v => Number(v)).sort((a, b) => a - b);
+      const sum = numValues.reduce((a, b) => a + b, 0);
+      profiling = {
+        min: numValues[0],
+        max: numValues[numValues.length - 1],
+        mean: Number((sum / numValues.length).toFixed(2)),
+        median: numValues[Math.floor(numValues.length / 2)],
+      };
     }
 
-    return metric;
+    return {
+      name: key,
+      type,
+      completeness: Math.round((nonMissing.length / cleaned.length) * 100),
+      uniqueValues: unique.size,
+      profiling,
+    };
   });
 
-  // Physical Pearson Correlation Matrix (Numeric Only)
+  // 4. Pearson Correlation Matrix
   const numericCols = columnsAnalysis.filter(c => c.type === "numeric").map(c => c.name);
   const correlationMatrix: Record<string, Record<string, number>> = {};
 
-  if (numericCols.length >= 2) {
-    numericCols.forEach(colA => {
-      correlationMatrix[colA] = {};
-      numericCols.forEach(colB => {
-        if (colA === colB) {
-          correlationMatrix[colA][colB] = 1;
-        } else {
-          const valuesA = columnData[colA].map(v => Number(v));
-          const valuesB = columnData[colB].map(v => Number(v));
-          
-          const meanA = valuesA.reduce((a, b) => a + b, 0) / valuesA.length;
-          const meanB = valuesB.reduce((a, b) => a + b, 0) / valuesB.length;
-          
-          let num = 0;
-          let denA = 0;
-          let denB = 0;
-          
-          for (let k = 0; k < valuesA.length; k++) {
-            const diffA = valuesA[k] - meanA;
-            const diffB = valuesB[k] - meanB;
-            num += diffA * diffB;
-            denA += diffA * diffA;
-            denB += diffB * diffB;
-          }
-          
-          const r = denA * denB === 0 ? 0 : num / Math.sqrt(denA * denB);
-          correlationMatrix[colA][colB] = Math.round(r * 100) / 100;
-        }
-      });
+  numericCols.forEach(colA => {
+    correlationMatrix[colA] = {};
+    numericCols.forEach(colB => {
+      if (colA === colB) {
+        correlationMatrix[colA][colB] = 1;
+        return;
+      }
+      
+      const valsA = cleaned.map(r => Number(r[colA]));
+      const valsB = cleaned.map(r => Number(r[colB]));
+      
+      const meanA = valsA.reduce((a, b) => a + b, 0) / valsA.length;
+      const meanB = valsB.reduce((a, b) => a + b, 0) / valsB.length;
+      
+      let num = 0;
+      let denA = 0;
+      let denB = 0;
+      
+      for (let i = 0; i < valsA.length; i++) {
+        const diffA = valsA[i] - meanA;
+        const diffB = valsB[i] - meanB;
+        num += diffA * diffB;
+        denA += diffA * diffA;
+        denB += diffB * diffB;
+      }
+      
+      const r = denA * denB === 0 ? 0 : num / Math.sqrt(denA * denB);
+      correlationMatrix[colA][colB] = Number(r.toFixed(2));
     });
-  }
+  });
 
-  const baseScore = validRows.length / rawData.length;
-  const qualityScore = Math.round(baseScore * 1000) / 10;
+  // 5. Build Final Metrics
+  const qualityScore = Math.max(0, 100 - ((duplicatesRemoved + missingValuesRemoved) / originalCount) * 100);
 
   return {
-    cleaned: validRows,
+    cleaned,
     metrics: {
-      totalOriginalRows: rawData.length,
-      totalCleanedRows: validRows.length,
-      missingValuesRemoved,
+      originalCount,
+      cleanedCount: cleaned.length,
       duplicatesRemoved,
-      qualityScore,
+      missingValuesRemoved,
       columnsAnalysis,
-      correlationMatrix
+      qualityScore: Math.round(qualityScore),
+      correlationMatrix,
     }
   };
 }

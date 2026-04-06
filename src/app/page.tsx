@@ -281,33 +281,23 @@ export default function DashboardOverview() {
         </div>
       </div>
 
-      {/* Correlation Matrix and Advanced Stats Section */}
+      {/* Correlation Matrix Section */}
       {metrics?.correlationMatrix && columns.length > 1 && (
         <motion.div 
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
-          className="glass-panel rounded-[3rem] p-12 border border-white/5"
+          className="glass-panel rounded-[3rem] p-12 border border-white/5 shadow-2xl"
         >
           <div className="flex flex-col md:flex-row md:items-center justify-between mb-12 gap-6">
              <div>
-                <h2 className="text-3xl font-black text-white tracking-tighter">Correlation Matrix</h2>
-                <p className="text-slate-500 font-bold uppercase text-[10px] tracking-[0.3em] mt-2">Relational affinity between vectorized dimensions</p>
-             </div>
-             <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl">
-                   <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-                   <span className="text-[10px] font-black text-emerald-400">POSITIVE REL</span>
-                </div>
-                <div className="flex items-center gap-2 px-4 py-2 bg-rose-500/10 border border-rose-500/20 rounded-2xl">
-                   <div className="w-2 h-2 rounded-full bg-rose-500"></div>
-                   <span className="text-[10px] font-black text-rose-400">NEGATIVE REL</span>
-                </div>
+                <h2 className="text-3xl font-black text-white tracking-tighter">Relational Affinity</h2>
+                <p className="text-slate-500 font-bold uppercase text-[10px] tracking-[0.3em] mt-2">Pearson correlation between vectorized dimensions</p>
              </div>
           </div>
 
-          <div className="overflow-x-auto pb-4 scrollbar-hide">
+          <div className="overflow-x-auto pb-4 custom-scrollbar">
             <div className="min-w-[800px]">
-              <div className="grid grid-cols-[140px_1fr] gap-4 mb-4">
+              <div className="grid grid-cols-[160px_1fr] gap-4 mb-6">
                 <div></div>
                 <div className="flex">
                   {columns.map(col => (
@@ -318,8 +308,8 @@ export default function DashboardOverview() {
               
               <div className="space-y-4">
                 {columns.map(rowCol => (
-                  <div key={rowCol} className="grid grid-cols-[140px_1fr] gap-4 items-center group">
-                    <div className="text-[10px] font-black text-slate-300 uppercase tracking-widest truncate text-right pr-4 border-r border-white/5">{rowCol}</div>
+                  <div key={rowCol} className="grid grid-cols-[160px_1fr] gap-4 items-center group">
+                    <div className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] truncate text-right pr-6 border-r border-white/5">{rowCol}</div>
                     <div className="flex">
                       {columns.map(col => {
                         const val = metrics.correlationMatrix![rowCol][col];
@@ -329,21 +319,20 @@ export default function DashboardOverview() {
                         return (
                           <div 
                             key={col} 
-                            className="w-32 h-16 flex items-center justify-center"
+                            className="w-32 h-20 flex items-center justify-center p-2"
                             title={`${rowCol} vs ${col}: ${val.toFixed(3)}`}
                           >
                             <div 
                               className={clsx(
-                                "w-20 h-10 rounded-xl flex items-center justify-center text-xs font-black transition-all duration-500 group-hover:scale-105",
-                                isPos ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-rose-500/10 text-rose-400 border border-rose-500/20",
-                                rowCol === col && "bg-slate-800 text-white border-white/10 opacity-30"
+                                "w-full h-full rounded-2xl flex items-center justify-center text-xs font-black transition-all duration-700 group-hover:scale-105 border",
+                                isPos ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_20px_rgba(16,185,129,0.1)]" : "bg-rose-500/10 text-rose-400 border-rose-500/20 shadow-[0_0_20px_rgba(244,63,94,0.1)]",
+                                rowCol === col && "bg-slate-900 text-white border-white/10 opacity-30 shadow-none"
                               )}
                               style={{ 
-                                opacity: rowCol === col ? 0.3 : intensity,
-                                transform: `scale(${0.8 + (intensity * 0.2)})`
+                                opacity: rowCol === col ? 0.3 : Math.max(0.1, intensity),
                               }}
                             >
-                              {rowCol === col ? "1.0" : val.toFixed(2)}
+                              {rowCol === col ? "1.00" : val.toFixed(2)}
                             </div>
                           </div>
                         );
@@ -356,6 +345,74 @@ export default function DashboardOverview() {
           </div>
         </motion.div>
       )}
+
+      {/* Deep Profiling Section */}
+      {metrics && metrics.columnsAnalysis.some(c => c.profiling) && (
+        <motion.div
+           initial={{ opacity: 0, y: 40 }}
+           animate={{ opacity: 1, y: 0 }}
+           className="space-y-10"
+        >
+           <div className="flex items-center gap-6">
+              <div className="h-px flex-1 bg-white/5"></div>
+              <h2 className="text-2xl font-black text-white tracking-widest uppercase">Statistical Deep Dive</h2>
+              <div className="h-px flex-1 bg-white/5"></div>
+           </div>
+
+           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+              {metrics.columnsAnalysis.filter(c => c.profiling).map((col, idx) => (
+                 <motion.div
+                    key={col.name}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: idx * 0.1 }}
+                    className="glass-panel p-10 rounded-[3rem] border border-white/5 group hover:border-blue-500/30 transition-all shadow-3xl"
+                 >
+                    <div className="flex items-start justify-between mb-10">
+                       <div className="space-y-2">
+                          <h3 className="text-xl font-black text-white tracking-tight group-hover:text-blue-400 transition-colors">{col.name}</h3>
+                          <div className="flex items-center gap-2">
+                             <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest bg-slate-950 px-2.5 py-1 rounded-lg border border-white/5">Numeric</span>
+                             <span className="text-[10px] font-black text-emerald-500 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">Synced</span>
+                          </div>
+                       </div>
+                       <div className="p-4 bg-slate-950 rounded-2xl border border-white/5 shadow-inner">
+                          <BarChart3 className="w-6 h-6 text-blue-500" />
+                       </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-8">
+                       <ProfileStat label="Mean" value={col.profiling!.mean} color="text-blue-400" />
+                       <ProfileStat label="Median" value={col.profiling!.median} color="text-indigo-400" />
+                       <ProfileStat label="Minimum" value={col.profiling!.min} color="text-slate-400" />
+                       <ProfileStat label="Maximum" value={col.profiling!.max} color="text-slate-400" />
+                    </div>
+
+                    <div className="mt-10 pt-10 border-t border-white/5">
+                       <div className="flex justify-between items-center mb-4">
+                          <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Relational Variance</span>
+                          <span className="text-[10px] font-black text-blue-500">OPTIMAL</span>
+                       </div>
+                       <div className="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden shadow-inner flex gap-0.5">
+                          {[...Array(20)].map((_, i) => (
+                             <div key={i} className={clsx("h-full flex-1", i < 15 ? "bg-blue-500/40" : "bg-slate-900")} />
+                          ))}
+                       </div>
+                    </div>
+                 </motion.div>
+              ))}
+           </div>
+        </motion.div>
+      )}
+    </div>
+  );
+}
+
+function ProfileStat({ label, value, color }: { label: string, value: number, color: string }) {
+  return (
+    <div className="space-y-1">
+       <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">{label}</p>
+       <p className={clsx("text-2xl font-black tracking-tighter", color)}>{value.toLocaleString()}</p>
     </div>
   );
 }
@@ -369,7 +426,7 @@ function MetricCard({ title, value, change, trend, icon: Icon, delay, color }: a
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, delay }}
-      className="glass-panel p-10 rounded-[2.5rem] relative overflow-hidden group border border-white/5 active:scale-95 transition-all"
+      className="glass-panel p-10 rounded-[2.5rem] relative overflow-hidden group border border-white/5 active:scale-95 transition-all shadow-3xl"
     >
       <div className="absolute inset-0 bg-gradient-to-br from-white/[0.04] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
       <div className="flex justify-between items-start mb-8">
