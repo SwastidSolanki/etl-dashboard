@@ -1,8 +1,12 @@
 "use client";
-import { Search, Bell, Menu, User, Zap } from "lucide-react";
+import { Search, Bell, Menu, User, Zap, Activity } from "lucide-react";
 import { motion } from "framer-motion";
+import { useDataContext } from "@/context/DataContext";
+import { clsx } from "clsx";
 
 export default function Navbar() {
+  const { status } = useDataContext();
+
   return (
     <header 
       className="h-20 border-b border-white/5 bg-slate-950/40 backdrop-blur-3xl flex items-center justify-between px-8 sticky top-0 z-40"
@@ -25,12 +29,30 @@ export default function Navbar() {
             aria-label="Search dashboard"
           />
         </div>
+
+        {/* Global System HUD */}
+        <div className="hidden lg:flex items-center gap-4 pl-6 border-l border-white/5">
+           <div className="flex items-center gap-3 px-4 py-2 bg-slate-900/50 border border-white/5 rounded-xl shadow-inner group">
+              <div className={clsx(
+                "w-2 h-2 rounded-full shadow-[0_0_8px_rgba(0,0,0,0.5)]",
+                status === "success" || status === "idle" ? "bg-emerald-500 shadow-emerald-500/40" :
+                status === "error" ? "bg-rose-500 shadow-rose-500/40" : "bg-amber-500 animate-pulse shadow-amber-500/40"
+              )}></div>
+              <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest group-hover:text-slate-300 transition-colors">
+                Kernel: {status === "idle" ? "Standby" : status.toUpperCase()}
+              </span>
+           </div>
+           <div className="flex items-center gap-2 text-slate-600">
+              <Activity className="w-3.5 h-3.5" />
+              <span className="text-[9px] font-black uppercase tracking-tighter">Uplink: Nominal</span>
+           </div>
+        </div>
       </div>
 
       <div className="flex items-center gap-6">
         <div className="hidden sm:flex items-center gap-3 px-4 py-2 bg-slate-900/50 border border-white/5 rounded-2xl shadow-inner">
            <Zap className="w-4 h-4 text-amber-500" />
-           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Speed: 4.2ms</span>
+           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Latency: 4.2ms</span>
         </div>
 
         <button 
