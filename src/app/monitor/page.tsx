@@ -86,94 +86,159 @@ export default function PipelineMonitor() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
         <div className="lg:col-span-12 xl:col-span-9 space-y-10">
-          {/* Pipeline Visualizer */}
-          <motion.div 
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="glass-panel rounded-[3rem] p-12 relative overflow-hidden border border-white/5 shadow-2xl"
-          >
-            <div className="absolute top-[6.5rem] left-[15%] right-[15%] h-px bg-slate-800 z-0 hidden xl:block">
-               <motion.div 
-                 initial={{ width: 0 }}
-                 animate={{ width: status === "success" ? "100%" : status === "loading" ? "80%" : status === "transforming" ? "50%" : status === "extracting" ? "20%" : "0%" }}
-                 className="h-full bg-blue-500 shadow-[0_0_25px_rgba(59,130,246,0.8)]"
-               />
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-16 relative z-10">
-              {pipelineStages.map((stage, index) => {
-                const isSuccess = stage.status === "success";
-                const isRunning = stage.status === "running";
-                const isPending = stage.status === "pending";
+          {/* Pipeline Visualizer & Performance Gauges */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-10">
+            <motion.div 
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="md:col-span-8 glass-panel rounded-[3rem] p-12 relative overflow-hidden border border-white/5 shadow-2xl"
+            >
+              {/* Background Pulse Wave */}
+              <div className="absolute inset-0 z-0 opacity-20 pointer-events-none">
+                 <svg width="100%" height="100%" viewBox="0 0 1000 200" preserveAspectRatio="none">
+                    <motion.path
+                      d="M 0 100 Q 125 50 250 100 Q 375 150 500 100 Q 625 50 750 100 Q 875 150 1000 100"
+                      fill="none"
+                      stroke="#3b82f6"
+                      strokeWidth="2"
+                      initial={{ pathLength: 0, pathOffset: 0 }}
+                      animate={{ 
+                        pathLength: [0, 1],
+                        pathOffset: [0, 1]
+                      }}
+                      transition={{ 
+                        duration: status !== "idle" && status !== "success" ? 1 : 4, 
+                        repeat: Infinity, 
+                        ease: "linear" 
+                      }}
+                    />
+                 </svg>
+              </div>
 
-                return (
-                  <div key={stage.id} className="flex flex-col items-center group">
-                    <div className="relative mb-10">
-                       <AnimatePresence>
-                         {isRunning && (
-                           <motion.div 
-                             initial={{ scale: 0.8, opacity: 0 }}
-                             animate={{ scale: 1.2, opacity: 1 }}
-                             exit={{ scale: 1.5, opacity: 0 }}
-                             className="absolute -inset-6 bg-blue-500/10 blur-3xl rounded-full"
-                           />
-                         )}
-                       </AnimatePresence>
-                       <div className={clsx(
-                         "w-24 h-24 rounded-[2.5rem] flex items-center justify-center transition-all duration-700 border-2 relative z-10",
-                         isSuccess ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-500 shadow-[0_0_40px_rgba(16,185,129,0.2)]" :
-                         isRunning ? "bg-blue-600 border-blue-400 text-white shadow-[0_0_60px_rgba(59,130,246,0.5)] -translate-y-3" :
-                         "bg-slate-900 border-white/5 text-slate-600 hover:border-slate-700"
-                       )}>
-                         <stage.icon className={clsx("w-10 h-10", isRunning && "animate-spin-slow")} />
-                         
-                         {isSuccess && (
-                            <motion.div 
-                              initial={{ scale: 0 }}
-                              animate={{ scale: 1 }}
-                              className="absolute -top-2 -right-2 bg-emerald-500 text-slate-950 p-1 rounded-full border-4 border-slate-950"
-                            >
-                               <CheckCircle2 className="w-4 h-4" />
-                            </motion.div>
-                         )}
-                       </div>
-                    </div>
-                    
-                    <div className="text-center space-y-4 w-full">
-                       <div>
-                          <h3 className={clsx("text-2xl font-black tracking-tight transition-colors duration-500", isRunning ? "text-blue-400" : isSuccess ? "text-white" : "text-slate-600")}>
-                            {stage.name}
-                          </h3>
-                          <p className="text-[10px] text-slate-500 mt-2 font-black uppercase tracking-widest">{stage.description}</p>
-                       </div>
+              <div className="absolute top-[6.5rem] left-[15%] right-[15%] h-px bg-slate-800 z-0 hidden xl:block">
+                 <motion.div 
+                   initial={{ width: 0 }}
+                   animate={{ width: status === "success" ? "100%" : status === "loading" ? "80%" : status === "transforming" ? "50%" : status === "extracting" ? "20%" : "0%" }}
+                   className="h-full bg-blue-500 shadow-[0_0_25px_rgba(59,130,246,0.8)]"
+                 />
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-16 relative z-10">
+                {pipelineStages.map((stage, index) => {
+                  const isSuccess = stage.status === "success";
+                  const isRunning = stage.status === "running";
+                  const isPending = stage.status === "pending";
 
-                       <div className="space-y-4">
-                          <div className="w-full h-1 bg-slate-950 rounded-full overflow-hidden shadow-inner">
+                  return (
+                    <div key={stage.id} className="flex flex-col items-center group">
+                      <div className="relative mb-10">
+                         <AnimatePresence>
+                           {isRunning && (
                              <motion.div 
-                               initial={{ width: 0 }}
-                               animate={{ width: `${stage.progress}%` }}
-                               className={clsx(
-                                 "h-full transition-all duration-1000",
-                                 isSuccess ? "bg-emerald-500" : "bg-blue-500"
-                               )}
+                               initial={{ scale: 0.8, opacity: 0 }}
+                               animate={{ scale: 1.2, opacity: 1 }}
+                               exit={{ scale: 1.5, opacity: 0 }}
+                               className="absolute -inset-6 bg-blue-500/10 blur-3xl rounded-full"
                              />
-                          </div>
-                          
-                          <div className={clsx(
-                            "inline-block px-5 py-2 rounded-2xl text-[10px] font-black tracking-[0.2em] border shadow-2xl transition-all duration-500",
-                            isSuccess ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
-                            isRunning ? "bg-blue-600 shadow-blue-500/20 text-white border-blue-400" :
-                            "bg-slate-950 text-slate-700 border-white/5"
-                          )}>
-                            {stage.records !== "-" ? `${stage.records} REC` : "STANDBY"}
-                          </div>
-                       </div>
+                           )}
+                         </AnimatePresence>
+                         <div className={clsx(
+                           "w-24 h-24 rounded-[2.5rem] flex items-center justify-center transition-all duration-700 border-2 relative z-10",
+                           isSuccess ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-500 shadow-[0_0_40px_rgba(16,185,129,0.2)]" :
+                           isRunning ? "bg-blue-600 border-blue-400 text-white shadow-[0_0_60px_rgba(59,130,246,0.5)] -translate-y-3" :
+                           "bg-slate-900 border-white/5 text-slate-600 hover:border-slate-700"
+                         )}>
+                           <stage.icon className={clsx("w-10 h-10", isRunning && "animate-spin-slow")} />
+                           
+                           {isSuccess && (
+                              <motion.div 
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                className="absolute -top-2 -right-2 bg-emerald-500 text-slate-950 p-1 rounded-full border-4 border-slate-950"
+                              >
+                                 <CheckCircle2 className="w-4 h-4" />
+                              </motion.div>
+                           )}
+                         </div>
+                      </div>
+                      
+                      <div className="text-center space-y-4 w-full">
+                         <div>
+                            <h3 className={clsx("text-2xl font-black tracking-tight transition-colors duration-500", isRunning ? "text-blue-400" : isSuccess ? "text-white" : "text-slate-600")}>
+                              {stage.name}
+                            </h3>
+                            <p className="text-[10px] text-slate-500 mt-2 font-black uppercase tracking-widest">{stage.description}</p>
+                         </div>
+
+                         <div className="space-y-4">
+                            <div className="w-full h-1 bg-slate-950 rounded-full overflow-hidden shadow-inner">
+                               <motion.div 
+                                 initial={{ width: 0 }}
+                                 animate={{ width: `${stage.progress}%` }}
+                                 className={clsx(
+                                   "h-full transition-all duration-1000",
+                                   isSuccess ? "bg-emerald-500" : "bg-blue-500"
+                                 )}
+                               />
+                            </div>
+                            
+                            <div className={clsx(
+                              "inline-block px-5 py-2 rounded-2xl text-[10px] font-black tracking-[0.2em] border shadow-2xl transition-all duration-500",
+                              isSuccess ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
+                              isRunning ? "bg-blue-600 shadow-blue-500/20 text-white border-blue-400" :
+                              "bg-slate-950 text-slate-700 border-white/5"
+                            )}>
+                              {stage.records !== "-" ? `${stage.records} REC` : "STANDBY"}
+                            </div>
+                         </div>
+                      </div>
                     </div>
+                  );
+                })}
+              </div>
+            </motion.div>
+
+            <motion.div 
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="md:col-span-4 glass-panel rounded-[3rem] p-10 border border-white/5 bg-slate-950/20 flex flex-col justify-between"
+            >
+               <div>
+                  <h3 className="text-xs font-black uppercase text-slate-500 tracking-[0.2em] mb-8">Uplink Vitality</h3>
+                  <div className="space-y-8">
+                     <div className="relative h-40 flex items-center justify-center">
+                        <svg className="w-32 h-32 transform -rotate-90">
+                           <circle cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="12" fill="transparent" className="text-slate-900" />
+                           <motion.circle 
+                             cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="12" fill="transparent" 
+                             strokeDasharray={364}
+                             initial={{ strokeDashoffset: 364 }}
+                             animate={{ strokeDashoffset: 364 - (364 * (status !== "idle" ? 85 : 15)) / 100 }}
+                             className={clsx(status !== "idle" && status !== "success" ? "text-blue-500" : "text-emerald-500")}
+                           />
+                        </svg>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                           <span className="text-2xl font-black text-white">{status !== "idle" ? "85%" : "15%"}</span>
+                           <span className="text-[10px] font-black text-slate-500 uppercase">Load</span>
+                        </div>
+                     </div>
+                     <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                           <span className="text-[10px] font-black text-slate-500 uppercase">Buffer Saturation</span>
+                           <span className="text-xs font-bold text-white">42.8 GB/s</span>
+                        </div>
+                        <div className="w-full h-1 bg-slate-900 rounded-full">
+                           <motion.div animate={{ width: "42%" }} className="h-full bg-blue-500" />
+                        </div>
+                     </div>
                   </div>
-                );
-              })}
-            </div>
-          </motion.div>
+               </div>
+               <div className="p-4 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl flex items-center gap-3">
+                  <Activity className="w-4 h-4 text-emerald-500 animate-pulse" />
+                  <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest leading-none">Kernel Heartbeat: Operational</span>
+               </div>
+            </motion.div>
+          </div>
 
           {/* Logs Panel */}
           <motion.div
